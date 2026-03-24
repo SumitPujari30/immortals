@@ -86,10 +86,11 @@ export default function LandingPage() {
               <div className="relative w-32 sm:w-40 md:w-48 lg:w-56 h-12 sm:h-14 group-hover:scale-105 transition-transform duration-300">
                 <Image 
                   src="/assets/logo.png" 
-                  alt="NagarSeva" 
+                  alt="NagarSevaLogo" 
                   fill
                   className="object-contain object-left brightness-[1.2]"
                   priority
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             </Link>

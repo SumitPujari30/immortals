@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth, useUserProfile } from '@/hooks'
+import Chatbot from '@/components/Chatbot'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -363,6 +364,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </div>
         </footer>
       )}
+
+      {/* AI Chatbot */}
+      <Chatbot />
     </div>
   )
 }

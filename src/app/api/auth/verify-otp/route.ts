@@ -29,6 +29,15 @@ export async function POST(req: Request) {
     // OTP verified successfully
     otpStore.delete(email)
 
+    const { profileData } = await (async () => {
+      try {
+        const body = await req.clone().json()
+        return { profileData: body.profileData }
+      } catch {
+        return { profileData: null }
+      }
+    })()
+
     // Get user id to set session
     const { data: user } = await supabaseAdmin
       .from('user_credentials')
@@ -38,6 +47,26 @@ export async function POST(req: Request) {
 
     if (user) {
       await setSession(user.id, email)
+
+      // Create profile on server if data is provided
+      if (profileData) {
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            full_name: profileData.fullName,
+            phone: profileData.phone,
+            address: profileData.address,
+            role: profileData.role || 'citizen',
+          })
+          .select()
+          .single()
+
+        if (profileError && profileError.code !== '23505') {
+          console.error('Error creating profile during OTP verification:', profileError)
+          // We don't fail the whole request since OTP is already verified
+        }
+      }
     }
 
     return NextResponse.json({ success: true, message: 'OTP verified successfully' })

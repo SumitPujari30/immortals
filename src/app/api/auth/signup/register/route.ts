@@ -38,19 +38,31 @@ export async function POST(req: Request) {
       .single()
 
     if (error) {
-      console.error('Insertion error:', error)
-      throw error
+      console.error('Registration insertion error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
+      return NextResponse.json({ 
+        error: `Database error: ${error.message}`, 
+        code: error.code,
+        details: error.details 
+      }, { status: 500 })
     }
 
-    console.log('User registered successfully:', email)
+    console.log('User registered successfully:', email, 'ID:', newUser?.id)
 
     return NextResponse.json({ 
       success: true, 
       user: { id: newUser.id, email: newUser.email },
       message: 'Registration successful' 
     })
-  } catch (error: any) {
-    console.error('Registration error detailed:', error)
-    return NextResponse.json({ error: error.message || 'Registration failed' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Registration catastrophic failure:', err)
+    return NextResponse.json({ 
+      error: err.message || 'Registration failed',
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 500 })
   }
 }

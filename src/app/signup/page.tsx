@@ -118,8 +118,7 @@ export default function SignupPage() {
           setShowOtpInput(true)
           toast.success('OTP sent to your email for verification.')
         } else {
-          toast.error(otpData.error || 'Failed to send verification code.')
-          await finalizeSignup(result.user.id)
+          toast.error(otpData.error || 'Failed to send verification code. Please try again later.')
         }
       } else {
         if (result.message === 'User already exists') {
@@ -138,31 +137,7 @@ export default function SignupPage() {
     }
   }
 
-  const finalizeSignup = async (uid: string) => {
-    try {
-      await createProfile({
-        user_id: uid,
-        full_name: formData.fullName,
-        phone: formData.phone,
-        address: formData.address,
-        role: formData.role as 'citizen' | 'volunteer' | 'admin',
-      })
-
-      toast.success(
-        'Account created successfully! Welcome to Nagar Seva.'
-      )
-      router.push('/dashboard')
-    } catch (error: any) {
-      if (error.message?.includes('duplicate key') || error.message?.includes('violates unique constraint')) {
-        toast.message('Welcome back!', {
-          description: 'Your account is already set up. Redirecting to login...',
-        })
-        setTimeout(() => router.push('/login'), 2000)
-      } else {
-        toast.error('Profile creation failed: ' + error.message)
-      }
-    }
-  }
+  // Remote finalizedSignup function moved to server-side logic in verify-otp route
 
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6) {
@@ -175,17 +150,26 @@ export default function SignupPage() {
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp: otpValue }),
+        body: JSON.stringify({ 
+          email: formData.email, 
+          otp: otpValue,
+          profileData: {
+            fullName: formData.fullName,
+            phone: formData.phone,
+            address: formData.address,
+            role: formData.role
+          }
+        }),
       })
 
       const data = await response.json()
 
       if (data.success) {
-        toast.success('OTP verified successfully!')
-        if (userId) {
-          await refreshUser()
-          await finalizeSignup(userId)
-        }
+        toast.success('Account verified successfully!')
+        toast.message('Welcome to Nagar Seva!', {
+          description: 'Redirecting to login...',
+        })
+        setTimeout(() => router.push('/login'), 2000)
       } else {
         toast.error(data.error || 'Invalid OTP. Please try again.')
       }
@@ -206,8 +190,10 @@ export default function SignupPage() {
           >
             <Image 
               src="/assets/logo.png" 
-              alt="NagarSeva" 
+              alt="NagarSevaLogo" 
               fill
+              priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-contain"
             />
           </Link>
@@ -421,20 +407,21 @@ export default function SignupPage() {
                       </Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          className="pl-10 pr-11 h-12 border-2 focus:ring-primary"
-                          value={formData.password}
-                          onChange={(e) =>
-                            setFormData((p) => ({
-                              ...p,
-                              password: e.target.value,
-                            }))
-                          }
-                          required
-                        />
+                          <Input
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            placeholder="••••••••"
+                            className="pl-10 pr-11 h-12 border-2 focus:ring-primary"
+                            value={formData.password}
+                            onChange={(e) =>
+                              setFormData((p) => ({
+                                ...p,
+                                password: e.target.value,
+                              }))
+                            }
+                            required
+                          />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
@@ -485,6 +472,7 @@ export default function SignupPage() {
                         <Input
                           id="confirmPassword"
                           type={showConfirmPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
                           placeholder="••••••••"
                           className={cn(
                             "pl-10 pr-11 h-12 border-2 focus:ring-primary",
