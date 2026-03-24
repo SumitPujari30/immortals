@@ -111,10 +111,7 @@ export function useDeleteComplaint() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      // Logic for delete would go through service if implemented
-      // For now we don't have a soft-delete API for complaints
-    },
+    mutationFn: (id: string) => complaintsService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: complaintKeys.all,

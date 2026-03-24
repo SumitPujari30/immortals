@@ -69,3 +69,17 @@ export function useGetOrCreateProfile() {
     },
   })
 }
+
+export function useCreateProfile() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Partial<UserProfile>) => profileService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: profileKeys.all,
+      })
+    },
+  })
+}
+
