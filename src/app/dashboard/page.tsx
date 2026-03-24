@@ -1,221 +1,447 @@
-"use client";
+'use client'
 
-import React from "react";
-import { motion } from "framer-motion";
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
+import React from 'react'
+import Link from 'next/link'
+import {
+  useAuth,
+  useUserProfile,
+  useUserComplaints,
+  useComplaintCount,
+} from '@/hooks'
+import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  PlusCircle,
+  Clock,
+  CheckCircle,
   AlertCircle,
+  ArrowRight,
+  MapPin,
+  Calendar,
+  Layers,
   Search,
-  Filter,
-  ChevronRight,
-  TrendingUp,
-  MapPin
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+  MessageSquare,
+  Camera,
+  User,
+  HelpCircle,
+  Map,
+  Phone,
+  Activity,
+} from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts'
+import { cn } from '@/lib/utils'
 
-const Dashboard = () => {
+export default function CitizenDashboard() {
+  const { user } = useAuth()
+  const { data: profile } = useUserProfile(user?.id)
+  const { data: complaints, isLoading } = useUserComplaints(user?.id)
+
+  const { data: totalCount } = useComplaintCount(user?.id)
+  const { data: pendingCount } = useComplaintCount(user?.id, 'pending')
+  const { data: inProgressCount } = useComplaintCount(user?.id, 'in_progress')
+  const { data: resolvedCount } = useComplaintCount(user?.id, 'resolved')
+
   const stats = [
-    { label: "Total Reports", value: "8", icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Pending", value: "3", icon: Clock, color: "text-brand-orange", bg: "bg-brand-orange/10" },
-    { label: "In Progress", value: "2", icon: TrendingUp, color: "text-brand-green", bg: "bg-brand-green/10" },
-    { label: "Resolved", value: "3", icon: CheckCircle2, color: "text-brand-green", bg: "bg-brand-green/10" },
-  ];
+    {
+      label: 'Total',
+      value: totalCount || 0,
+      icon: Layers,
+      color: 'text-primary bg-primary/10',
+    },
+    {
+      label: 'Under Review',
+      value: pendingCount || 0,
+      icon: Clock,
+      color: 'text-yellow-600 bg-yellow-50',
+    },
+    {
+      label: 'In Progress',
+      value: inProgressCount || 0,
+      icon: AlertCircle,
+      color: 'text-blue-600 bg-blue-50',
+    },
+    {
+      label: 'Resolved',
+      value: resolvedCount || 0,
+      icon: CheckCircle,
+      color: 'text-green-600 bg-green-50',
+    },
+  ]
+ 
+  // Chart Data Preparation
+  const categoryData = React.useMemo(() => {
+    if (!complaints) return []
+    const counts: Record<string, number> = {}
+    complaints.forEach((c: any) => {
+      const cat = c.category.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+      counts[cat] = (counts[cat] || 0) + 1
+    })
+    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+  }, [complaints])
+ 
+  const statusData = [
+    { name: 'Under Review', value: pendingCount || 0, color: '#EAB308' },
+    { name: 'In Progress', value: inProgressCount || 0, color: '#3B82F6' },
+    { name: 'Resolved', value: resolvedCount || 0, color: '#22C55E' },
+  ].filter(d => d.value > 0)
+ 
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#0088fe', '#00c49f', '#ffbb28', '#ff8042']
 
-  const complaints = [
-    { 
-      id: "NS-4502", 
-      title: "Broken Streetlight", 
-      category: "Electricity", 
-      status: "In Progress", 
-      date: "24 Mar 2026",
-      location: "Sector 15, Vashi"
-    },
-    { 
-      id: "NS-4498", 
-      title: "Pothole on Main Road", 
-      category: "Roads", 
-      status: "Pending", 
-      date: "23 Mar 2026",
-      location: "Palm Beach Rd"
-    },
-    { 
-      id: "NS-4485", 
-      title: "Illegal Garbage Dumping", 
-      category: "Waste", 
-      status: "Resolved", 
-      date: "21 Mar 2026",
-      location: "Kopar Khairane"
-    },
-    { 
-      id: "NS-4472", 
-      title: "Overflowing Sewage", 
-      category: "Sewage", 
-      status: "Resolved", 
-      date: "19 Mar 2026",
-      location: "Nerul East"
-    },
-  ];
-
-  const getStatusVariant = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "Resolved": return "success";
-      case "In Progress": return "warning";
-      case "Pending": return "destructive";
-      default: return "default";
+      case 'pending':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          >
+            Under Review
+          </Badge>
+        )
+      case 'in_progress':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-700 border-blue-200"
+          >
+            In Progress
+          </Badge>
+        )
+      case 'resolved':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200"
+          >
+            Resolved
+          </Badge>
+        )
+      case 'rejected':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200"
+          >
+            Rejected
+          </Badge>
+        )
+      default:
+        return <Badge variant="outline">{status}</Badge>
     }
-  };
+  }
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return (
+          <Badge variant="secondary" className="bg-red-100 text-red-800">
+            High Priority
+          </Badge>
+        )
+      case 'medium':
+        return (
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            Medium
+          </Badge>
+        )
+      case 'low':
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            Low
+          </Badge>
+        )
+      default:
+        return <Badge variant="secondary">{priority}</Badge>
+    }
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="flex flex-col gap-4 sm:gap-6 mb-8 sm:mb-10 animate-in">
         <div>
-          <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-            Citizen <span className="text-brand-orange">Dashboard</span>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-primary mb-2">
+            Citizen Dashboard
           </h1>
-          <p className="text-slate-400">Welcome back, Sumit. Track and manage your civic reports.</p>
+          <p className="text-muted-foreground text-base sm:text-lg">
+            Welcome back,{' '}
+            <span className="font-semibold text-foreground">
+              {profile?.full_name || 'Citizen'}
+            </span>
+            . Track and manage your reported issues.
+          </p>
         </div>
-        <Button className="w-full md:w-auto h-12">
-          New Report
-        </Button>
+        <Link 
+          href="/complaints/new"
+          className={buttonVariants({ className: "btn-primary-civic h-11 sm:h-12 px-4 sm:px-6 shadow-md w-full sm:w-auto justify-center" })}
+        >
+          <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+          New Complaint
+        </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10">
         {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+          <Card
+            key={i}
+            className="civic-card border-none shadow-sm animate-in"
+            style={{ animationDelay: `${i * 100}ms` }}
           >
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl ${stat.bg}`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                  <span className="text-sm font-bold text-slate-500">Live</span>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn('p-3 rounded-xl', stat.color)}>
+                  <stat.icon className="w-6 h-6" />
                 </div>
-                <div className="text-4xl font-black text-white">{stat.value}</div>
-                <div className="text-sm text-slate-400 mt-1 font-medium">{stat.label}</div>
-              </CardContent>
-            </Card>
-          </motion.div>
+              </div>
+              <div>
+                <p className="text-4xl font-bold text-foreground mb-1">
+                  {stat.value}
+                </p>
+                <p className="text-muted-foreground font-medium">
+                  {stat.label}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl">Your Reports</CardTitle>
-                <CardDescription>Recent complaints filed by you.</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input placeholder="Search ID..." className="pl-9 w-48 h-10 text-xs" />
-                </div>
-                <Button variant="outline" size="icon" className="h-10 w-10">
-                  <Filter className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 border-t border-slate-900">
-              <div className="divide-y divide-slate-900">
-                {complaints.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="p-6 flex items-center justify-between hover:bg-slate-900/30 transition-colors group cursor-pointer"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-brand-orange">{item.id}</span>
-                        <h4 className="font-bold text-white transition-colors group-hover:text-brand-orange">
-                          {item.title}
-                        </h4>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-400" /> {item.location}
-                        </span>
-                        <span>{item.date}</span>
-                        <span className="font-bold text-slate-400">{item.category}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant={getStatusVariant(item.status) as any}>
-                        {item.status}
-                      </Badge>
-                      <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <div className="p-4 bg-slate-900/50 border-t border-slate-900 text-center">
-              <Button variant="link" className="text-xs">View All Reports</Button>
+      {/* My Submissions Section */}
+      <div className="grid grid-cols-1 gap-8 mb-10">
+        <Card className="civic-card border-none animate-in" style={{ animationDelay: '200ms' }}>
+          <CardHeader className="border-b pb-6 px-8 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-display">My Submissions</CardTitle>
+              <CardDescription>Track the live progress of your reported issues</CardDescription>
             </div>
-          </Card>
-        </div>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+              <Activity className="w-3 h-3 text-primary" /> Active Tracking
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-20 text-center"><Clock className="w-10 h-10 animate-spin mx-auto text-primary/30" /></div>
+            ) : !complaints || complaints.length === 0 ? (
+              <div className="p-20 text-center space-y-4">
+                <Layers className="w-12 h-12 text-slate-200 mx-auto" />
+                <p className="text-slate-500 font-medium">No complaints registered yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50/50">
+                    <tr>
+                      <th className="px-8 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Incident</th>
+                      <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Current Status</th>
+                      <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Incident Location</th>
+                      <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Progress Stage</th>
+                      <th className="px-8 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Registered</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {complaints.map((complaint: any) => (
+                      <tr key={complaint.id} className="group hover:bg-slate-50/50 transition-all duration-300">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 shadow-sm transition-transform group-hover:scale-105">
+                              {complaint.image_url ? (
+                                <img src={complaint.image_url} alt="Evidence" className="w-full h-full object-cover" />
+                              ) : (
+                                <Camera className="w-full h-full p-4 text-slate-300" />
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900 leading-tight tracking-tight uppercase text-sm">
+                                {complaint.category.replace('_', ' ')}
+                              </p>
+                              <p className="text-xs text-slate-500 line-clamp-1 max-w-[300px] font-medium">{complaint.description}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <MapPin className="w-3 h-3 text-primary/40" />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate max-w-[200px]">
+                                  {complaint.location_address || 'Unmapped Area'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          <div className="flex justify-center">
+                            {getStatusBadge(complaint.status)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                            <div className="flex justify-center">
+                                <div className="w-20 h-14 rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group bg-slate-100 shrink-0">
+                                {complaint.latitude && complaint.longitude ? (
+                                    <>
+                                    <img 
+                                        src={`https://static-maps.yandex.ru/1.x/?ll=${complaint.longitude},${complaint.latitude}&size=200,150&z=15&l=map&pt=${complaint.longitude},${complaint.latitude},pm2rdm`}
+                                        alt="Map"
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                    />
+                                    <a 
+                                        href={`https://www.google.com/maps?q=${complaint.latitude},${complaint.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[8px] font-black text-white uppercase tracking-widest gap-1"
+                                    >
+                                        <MapPin className="w-3 h-3 text-white" />
+                                        <span>Navigate</span>
+                                    </a>
+                                    </>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <MapPin className="w-4 h-4 opacity-30" />
+                                    </div>
+                                )}
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="max-w-[180px] mx-auto space-y-2">
+                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
+                              <span>Stage</span>
+                              <span>
+                                {complaint.status === 'pending' ? 'Review Phase' : 
+                                 complaint.status === 'in_progress' ? 'Implementation Phase' : 
+                                 complaint.status === 'resolved' ? 'Resolution Reached' : 'Terminated'}
+                              </span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                              <div 
+                                className={cn(
+                                  "h-full transition-all duration-1000",
+                                  complaint.status === 'pending' ? "w-1/3 bg-amber-400" :
+                                  complaint.status === 'in_progress' ? "w-2/3 bg-blue-500" :
+                                  complaint.status === 'resolved' ? "w-full bg-green-500" : "w-0"
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <p className="text-sm font-bold text-slate-900">{new Date(complaint.created_at).toLocaleDateString()}</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Verified Entry</p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Sidebar */}
+      {/* Analytics Insights Section */}
+      <div className="grid grid-cols-1 gap-8">
         <div className="space-y-6">
-          <Card className="bg-gradient-to-br from-brand-orange/20 to-transparent border-brand-orange/30">
-            <CardHeader>
-              <CardTitle className="text-lg">Need Assistance?</CardTitle>
-              <CardDescription className="text-slate-300">
-                Contact our civic support team for urgent issues.
-              </CardDescription>
+          <Card className="civic-card border-none animate-in">
+            <CardHeader className="border-b pb-6 px-8 items-center flex flex-row justify-between">
+              <div>
+                <CardTitle className="text-2xl font-display">
+                  Complaint Analytics
+                </CardTitle>
+                <CardDescription>
+                  Visual overview of your reporting activity
+                </CardDescription>
+              </div>
             </CardHeader>
-            <CardContent>
-              <Button className="w-full bg-white text-slate-950 hover:bg-slate-100 mb-4">
-                Call Helpline
-              </Button>
-              <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">
-                Available 24/7 • 1800-CIVIC-CARE
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Resolution Status</CardTitle>
-              <CardDescription>Average time per category</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { name: "Electricity", progress: 85, color: "bg-brand-orange" },
-                { name: "Water", progress: 70, color: "bg-brand-green" },
-                { name: "Roads", progress: 45, color: "bg-blue-500" },
-              ].map((cat) => (
-                <div key={cat.name} className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-300">{cat.name}</span>
-                    <span className="text-slate-500">{cat.progress}% Efficiency</span>
+            <CardContent className="p-8">
+              {isLoading ? (
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  Analyzing data...
+                </div>
+              ) : !complaints || complaints.length === 0 ? (
+                <div className="p-16 text-center">
+                  <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Layers className="w-10 h-10 text-primary/30" />
                   </div>
-                  <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${cat.progress}%` }}
-                      className={`h-full ${cat.color}`} 
-                    />
+                  <h3 className="text-xl font-bold mb-2">No data to visualize</h3>
+                  <p className="text-muted-foreground mb-8">Register your first complaint to see analytical insights here.</p>
+                  <Link 
+                    href="/complaints/new"
+                    className={buttonVariants({ className: "btn-primary-civic" })}
+                  >
+                    Start Reporting
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                  <div className="h-[400px] space-y-4">
+                    <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground text-center">Issues by Category</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={categoryData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis 
+                          dataKey="name" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#64748B', fontSize: 12 }}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B' }} />
+                        <Tooltip 
+                          cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        />
+                        <Bar 
+                          dataKey="value" 
+                          fill="#4F6F52" 
+                          radius={[6, 6, 0, 0]} 
+                          barSize={40}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+ 
+                  <div className="h-[400px] space-y-4">
+                    <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground text-center">Resolution Status</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusData}
+                          innerRadius={80}
+                          outerRadius={120}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {statusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        />
+                        <Legend verticalAlign="bottom" height={36}/>
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
-  );
-};
-
-export default Dashboard;
+  )
+}

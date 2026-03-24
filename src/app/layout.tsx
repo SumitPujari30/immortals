@@ -1,31 +1,31 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import MainLayout from "@/components/MainLayout";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
+import type { Metadata } from 'next'
+import './globals.css'
+import { Providers } from '@/components/providers'
+import { MainLayout } from '@/components/MainLayout'
+import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {
-  title: "NagarSeva - Smart Civic Complaint Portal",
-  description: "Report and track local civic issues with NagarSeva.",
-};
+  title: 'Nagar Seva - Smart Civic Complaint & Tracking Portal',
+  description:
+    'Empowering citizens to report, track, and resolve local issues. Smart Civic Complaint & Tracking Portal for a better community.',
+  icons: {
+    icon: '/logo.png',
+  },
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} h-full antialiased dark`}
-    >
-      <body className="min-h-full flex flex-col font-sans">
-        <MainLayout>{children}</MainLayout>
+    <html lang="en">
+      <body>
+        <Providers>
+          <MainLayout>{children}</MainLayout>
+          <Toaster position="top-center" richColors />
+        </Providers>
       </body>
     </html>
-  );
+  )
 }

@@ -1,196 +1,564 @@
-"use client";
+'use client'
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { 
-  Camera, 
-  MapPin, 
-  Send, 
-  ArrowLeft,
+import React, { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth, useRegisterComplaint } from '@/hooks'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Camera,
+  MapPin,
   AlertCircle,
+  Upload,
+  ArrowLeft,
   CheckCircle2,
-  Loader2
-} from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+  Loader2,
+  Trash2,
+  ShieldAlert,
+  RotateCcw,
+  Activity,
+} from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
 
-const ReportIssue = () => {
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [location, setLocation] = useState<string>("");
-  const [isDetecting, setIsDetecting] = useState(false);
+export default function NewComplaintPage() {
+  const router = useRouter()
+  const { user } = useAuth()
+  const { mutateAsync: registerComplaint, isPending } = useRegisterComplaint()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleDetectLocation = () => {
-    setIsDetecting(true);
-    // Mock location detection
-    setTimeout(() => {
-      setLocation("Sector 15, Vashi, Navi Mumbai, 400703");
-      setIsDetecting(false);
-    }, 1500);
-  };
+  const [formData, setFormData] = useState({
+    category: '',
+    description: '',
+    latitude: '',
+    longitude: '',
+    address: '',
+    locationMode: 'auto' as 'auto' | 'manual',
+    priority: 'medium',
+    riskAssessment: '',
+    peopleAffected: '',
+  })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    // Mock submission
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 2000);
-  };
+  const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false)
+  const [locationMode, setLocationMode] = useState<'auto' | 'manual'>('auto')
+  const [isGeocoding, setIsGeocoding] = useState(false)
 
-  if (submitted) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center px-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full text-center"
-        >
-          <div className="w-20 h-20 bg-brand-green/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-brand-green" />
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-4">Report Submitted!</h2>
-          <p className="text-slate-400 mb-8">
-            Your complaint has been successfully filed. Our administrators will review it shortly. 
-            You can track the progress in your dashboard.
-          </p>
-          <div className="flex flex-col gap-4">
-            <Button asChild>
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-            <Button variant="outline" onClick={() => setSubmitted(false)}>
-              File Another Issue
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    );
+  // Auto-detect location on load
+  React.useEffect(() => {
+    detectLocation()
+  }, [])
+
+  const categories = [
+    { value: 'pothole_road_damage', label: 'Pothole & Road Damage' },
+    { value: 'garbage_waste_collection', label: 'Garbage & Waste Collection' },
+    { value: 'water_leakage', label: 'Water Leakage' },
+    { value: 'street_light_issue', label: 'Street Light Issue' },
+    { value: 'public_encroachment', label: 'Public Encroachment' },
+    { value: 'stray_animal_issue', label: 'Stray Animal Issue' },
+    { value: 'other_civic_issue', label: 'Other Civic Issue' },
+  ]
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files)
+      setFiles((prev) => [...prev, ...newFiles])
+
+      const newPreviews = newFiles.map((file) => {
+        if (file.type.startsWith('image/')) {
+          return URL.createObjectURL(file)
+        }
+        // Placeholder for non-image files (videos/docs)
+        return '/file-placeholder.png' 
+      })
+      setPreviews((prev) => [...prev, ...newPreviews])
+    }
+  }
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index))
+    setPreviews((prev) => {
+      URL.revokeObjectURL(prev[index])
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const geocodeLocation = async () => {
+    if (!formData.address) {
+      toast.error('Please enter an address first')
+      return
+    }
+
+    setIsGeocoding(true)
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.address)}&limit=1`
+      )
+      const data = await response.json()
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0]
+        setFormData((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lon,
+          address: display_name,
+        }))
+        toast.success('Address verified and mapped!')
+      } else {
+        toast.error('Could not find coordinates for this address')
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error)
+      toast.error('An error occurred while verifying the address')
+    } finally {
+      setIsGeocoding(false)
+    }
+  }
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser')
+      return
+    }
+
+    setIsDetectingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        setFormData((prev) => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+        }))
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          )
+          const data = await response.json()
+          if (data.display_name) {
+            setFormData((prev) => ({ ...prev, address: data.display_name }))
+          }
+        } catch (error) {
+          console.error('Error reverse geocoding:', error)
+        } finally {
+          setIsDetectingLocation(false)
+          toast.success('Location detected successfully!')
+        }
+      },
+      (error) => {
+        setIsDetectingLocation(false)
+        toast.error('Could not detect location: ' + error.message)
+      }
+    )
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    if (!formData.category || !formData.description) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    const imageFile = files.find(f => f.type.startsWith('image/'))
+    const videoFile = files.find(f => f.type.startsWith('video/'))
+    const docFile = files.find(f => !f.type.startsWith('image/') && !f.type.startsWith('video/'))
+
+    try {
+      const result = await registerComplaint({
+        userId: user.id,
+        userEmail: user.email || '',
+        userName: '',
+        category: formData.category,
+        description: formData.description,
+        latitude: parseFloat(formData.latitude) || 0,
+        longitude: parseFloat(formData.longitude) || 0,
+        locationAddress: formData.address,
+        priorityLevel: formData.priority as 'low' | 'medium' | 'high',
+        imageFile,
+        videoFile,
+        docFile,
+        onProgress: (progress) => setUploadProgress(progress),
+      })
+
+      if (result.success) {
+        toast.success('Complaint registered successfully!')
+        router.push('/dashboard')
+      } else {
+        toast.error(result.error || 'Failed to register complaint')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'An unexpected error occurred')
+    }
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <Link 
-        href="/" 
-        className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors group"
+    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in">
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/dashboard')}
+          className="hover:bg-primary/5 group justify-start"
+        >
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2 transition-transform group-hover:-translate-x-1" />
+          Back to Dashboard
+        </Button>
+        <div className="text-right sm:text-left">
+          <span className="text-xs sm:text-sm font-medium text-muted-foreground bg-muted px-2 sm:px-3 py-1 rounded-full">
+            Step 1 of 1: Complaint Registration
+          </span>
+        </div>
+      </div>
+
+      <div
+        className="grid grid-cols-1 gap-8 sm:gap-12 animate-in"
+        style={{ animationDelay: '100ms' }}
       >
-        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Back to Home
-      </Link>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-4xl font-black text-white mb-4 tracking-tight">
-          Report a <span className="text-brand-orange">Civic Issue</span>
-        </h1>
-        <p className="text-slate-400 mb-10 text-lg">
-          Provide accurate details to help our Expert Force resolve the issue as quickly as possible.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Common Details</CardTitle>
-              <CardDescription>Basic information about the problem.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-300">Issue Title</label>
-                <Input placeholder="e.g. Broken streetlight, Pothole near market" required />
+        <Card className="civic-card border-none shadow-lg sm:shadow-xl overflow-hidden">
+          <div className="bg-primary h-2" />
+          <CardHeader className="pt-8 sm:pt-10 px-6 sm:px-10">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <ShieldAlert className="w-6 h-6 sm:w-10 sm:h-10" />
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-300">Category</label>
-                <select className="flex h-12 w-full rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-2 text-sm text-white focus:ring-2 focus:ring-brand-orange transition-all appearance-none outline-none">
-                  <option>Roads & Transport</option>
-                  <option>Electricity & Lighting</option>
-                  <option>Water & Sewage</option>
-                  <option>Waste Management</option>
-                  <option>Public Safety</option>
-                </select>
+              <div>
+                <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-display font-bold">
+                  Register New Complaint
+                </CardTitle>
+                <CardDescription className="text-sm sm:text-base sm:text-lg">
+                  Provide detailed information to help our volunteers address
+                  the issue.
+                </CardDescription>
               </div>
+            </div>
+          </CardHeader>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-300">Description</label>
-                <Textarea placeholder="Describe the issue in detail..." required />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Evidence & Location</CardTitle>
-              <CardDescription>Help us find and verify the problem.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-3xl p-12 hover:border-brand-orange/50 transition-colors cursor-pointer group">
-                <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8 text-brand-orange" />
+          <CardContent className="px-10 pb-12">
+            <form onSubmit={handleSubmit} className="space-y-10">
+              {/* Category & Description */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold font-display border-b pb-2">
+                  1. Complaint Details
+                </h3>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="category"
+                      className="text-base font-semibold"
+                    >
+                      Issue Category{' '}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      onValueChange={(val: string) =>
+                        setFormData((p) => ({ ...p, category: val }))
+                      }
+                    >
+                      <SelectTrigger className="h-12 border-2 focus:ring-primary">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <p className="text-slate-300 font-bold mb-1">Click to upload images</p>
-                <p className="text-slate-500 text-sm italic">Max 5MB per file (JPG, PNG)</p>
-                <input type="file" className="hidden" accept="image/*" multiple />
-              </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-slate-300">Address / Landmarks</label>
-                  <button 
-                    type="button"
-                    onClick={handleDetectLocation}
-                    disabled={isDetecting}
-                    className="text-xs font-bold text-brand-green flex items-center gap-1.5 hover:opacity-80 disabled:opacity-50"
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="description"
+                    className="text-base font-semibold"
                   >
-                    {isDetecting ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <MapPin className="w-3 h-3" />
-                    )}
-                    {isDetecting ? "Detecting..." : "Auto-detect Location"}
-                  </button>
+                    Detailed Description{' '}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe the issue in detail. Include landmarks or specific observations."
+                    className="min-h-[150px] border-2 focus:ring-primary resize-none p-4"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        description: e.target.value,
+                      }))
+                    }
+                    required
+                  />
                 </div>
-                <Input 
-                  value={location} 
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Street name, landmark, etc." 
-                  required 
-                />
               </div>
-            </CardContent>
-          </Card>
 
-          <div className="bg-brand-orange/10 border border-brand-orange/20 rounded-2xl p-6 flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-brand-orange shrink-0" />
-            <p className="text-sm text-slate-300 leading-relaxed">
-              <strong>Note:</strong> False reporting may lead to account suspension. Please ensure 
-              the information provided is accurate and relevant to public civic issues.
-            </p>
-          </div>
+              {/* Multimedia Uploads */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold font-display border-b pb-2">
+                  2. Visual Evidence & Documentation
+                </h3>
+                <div 
+                  className="p-8 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/[0.02] text-center hover:bg-primary/[0.04] transition-colors group cursor-pointer relative"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    multiple
+                    accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                    onChange={handleFileChange}
+                  />
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Camera className="w-8 h-8 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold">
+                        Click to upload photos, videos or documents
+                      </p>
+                      <p className="text-muted-foreground">
+                        Images (JPG, PNG), Videos (MP4), Documents (PDF, DOC)
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Up to 5 files (Max 10MB each)
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" className="mt-2 pointer-events-none">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Browse Files
+                    </Button>
+                  </div>
+                </div>
 
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="w-full h-14 text-lg"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" /> Submitting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                File Official Complaint <Send className="w-5 h-5" />
-              </span>
-            )}
-          </Button>
-        </form>
-      </motion.div>
+                {files.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                    {files.map((file, i) => (
+                      <div
+                        key={i}
+                        className="relative aspect-square rounded-xl overflow-hidden group border-2 border-primary/10 shadow-sm flex items-center justify-center bg-slate-50"
+                      >
+                        {file.type.startsWith('image/') ? (
+                          <img
+                            src={previews[i]}
+                            alt={`Preview ${i}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 p-4 text-center">
+                            {file.type.startsWith('video/') ? (
+                              <Loader2 className="w-8 h-8 text-primary animate-pulse" />
+                            ) : (
+                              <Upload className="w-8 h-8 text-primary" />
+                            )}
+                            <span className="text-[10px] font-medium truncate max-w-full px-2">
+                              {file.name}
+                            </span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeFile(i)}
+                          className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-full opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 shadow-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Location */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold font-display border-b pb-2">
+                  3. Location Information
+                </h3>
+                <div className="space-y-6">
+                  <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setLocationMode('auto')}
+                      className={cn(
+                        "flex-1 py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all",
+                        locationMode === 'auto' 
+                          ? "bg-white text-primary shadow-md translate-y-[-1px]" 
+                          : "text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      <Activity className="w-4 h-4" /> Current GPS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocationMode('manual')}
+                      className={cn(
+                        "flex-1 py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all",
+                        locationMode === 'manual' 
+                          ? "bg-white text-primary shadow-md translate-y-[-1px]" 
+                          : "text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      <MapPin className="w-4 h-4" /> Manual Entry
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    {locationMode === 'auto' ? (
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button
+                          type="button"
+                          onClick={detectLocation}
+                          disabled={isDetectingLocation}
+                          className="flex-1 h-14 btn-highlight-civic shadow-lg"
+                        >
+                          {isDetectingLocation ? (
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          ) : (
+                            <Activity className="w-5 h-5 mr-2" />
+                          )}
+                          {isDetectingLocation
+                            ? 'Syncing GPS Coordinates...'
+                            : 'Auto-Detect My Location'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          <Input
+                            placeholder="Type street name, landmark, or area..."
+                            className="h-14 border-2 focus:ring-primary flex-1"
+                            value={formData.address}
+                            onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
+                          />
+                          <Button
+                            type="button"
+                            onClick={geocodeLocation}
+                            disabled={isGeocoding}
+                            className="h-14 px-8 btn-primary-civic shadow-lg"
+                          >
+                            {isGeocoding ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                            )}
+                            {isGeocoding ? 'Verifying...' : 'Verify & Map'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.latitude && formData.longitude && (
+                    <div className="w-full h-56 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-xl relative animate-in fade-in zoom-in duration-500">
+                      <img 
+                        src={`https://static-maps.yandex.ru/1.x/?ll=${formData.longitude},${formData.latitude}&size=600,250&z=16&l=map&pt=${formData.longitude},${formData.latitude},pm2rdm`}
+                        alt="Location Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur px-5 py-3 rounded-2xl text-[10px] font-black text-slate-800 border border-slate-100 shadow-2xl flex items-center justify-between uppercase tracking-widest">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <MapPin className="w-4 h-4" />
+                          </div>
+                          <div className="max-w-[300px] truncate">
+                            <p className="text-primary opacity-60 text-[8px] mb-0.5">Anchored Location</p>
+                            <p className="line-clamp-1">{formData.address}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-primary">
+                          <Activity className="w-3.5 h-3.5 animate-pulse" /> Live Data
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="address-display"
+                        className="text-base font-semibold"
+                      >
+                        Final Verified Address
+                      </Label>
+                      <Input
+                        id="address-display"
+                        readOnly
+                        placeholder="Location details will appear here after verification..."
+                        className="h-12 border-2 bg-slate-50 text-slate-500 cursor-not-allowed font-medium"
+                        value={formData.address}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Section */}
+              <div className="pt-10 border-t space-y-6">
+                {isPending && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm font-medium">
+                      <span>
+                        Registering complaint and uploading files...
+                      </span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="submit"
+                    className="flex-1 h-14 btn-primary-civic text-xl shadow-xl"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-6 h-6 mr-2" />
+                    )}
+                    {isPending ? 'Processing...' : 'Register Complaint'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-14 px-8 text-lg hover:bg-destructive/5 hover:text-destructive hover:border-destructive/30"
+                    onClick={() => router.push('/dashboard')}
+                    disabled={isPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                <p className="text-center text-muted-foreground flex items-center justify-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Your IP address and location will be logged for verification.
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
-};
-
-export default ReportIssue;
+  )
+}
