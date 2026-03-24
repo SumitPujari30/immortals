@@ -6,13 +6,34 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Build output
 .next
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Environment files (NEVER commit secrets)
+.env
+.env.local
+.env.production
+.env*.local
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Test/debug scripts
+test-sql.ts
+test-e2e.mjs
+probe-db.*
+debug-db.ts
+diagnostic-complaints.ts
+check-fk.ts
+check-workers.mjs
+inspect-schema.mjs
+
+# OS / Editor files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +43,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.bash_logout
+.bashrc
+.profile
