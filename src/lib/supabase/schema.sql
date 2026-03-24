@@ -60,8 +60,9 @@ create table if not exists complaints (
   env_risk text default 'low' check (env_risk in ('low', 'medium', 'high')),
   health_risk text default 'low' check (health_risk in ('low', 'medium', 'high')),
   people_affected integer default 0,
-  status text default 'pending' check (status in ('pending', 'in_progress', 'resolved', 'rejected')),
+  status text default 'pending' check (status in ('pending', 'under_review', 'in_progress', 'resolved', 'rejected')),
   assigned_volunteer_id uuid references user_credentials(id),
+  assigned_worker_id uuid references workers(id),
   created_at timestamptz default now()
 );
 
@@ -94,6 +95,72 @@ create policy "Admins and volunteers can update any complaint"
 create policy "Users can delete their own complaints"
   on complaints for delete
   using (auth.uid() = user_id);
+
+-- ============================================================================
+-- Workers Table
+-- ============================================================================
+create table if not exists workers (
+  id uuid default uuid_generate_v4() primary key,
+  full_name text not null,
+  age integer,
+  gender text,
+  gov_id_type text,
+  gov_id_number text,
+  phone text unique,
+  photo_url text,
+  gov_id_url text,
+  area text,
+  assigned_count integer default 0,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- Enable Row Level Security
+alter table workers enable row level security;
+
+-- Policies for workers
+create policy "Workers are viewable by admins"
+  on workers for select
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
+
+create policy "Admins can manage workers"
+  on workers for all
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
+
+-- ============================================================================
+-- Storage Bucket for worker photos
+-- ============================================================================
+insert into storage.buckets (id, name, public)
+values ('workers', 'workers', true)
+on conflict do nothing;
+
+-- Storage policies
+create policy "Anyone can view worker photos"
+  on storage.objects for select
+  using (bucket_id = 'workers');
+
+create policy "Admins can upload worker photos"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'workers' and 
+    exists (
+      select 1 from profiles
+      where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
 
 -- ============================================================================
 -- Storage Bucket for complaint media

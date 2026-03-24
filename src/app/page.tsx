@@ -499,6 +499,122 @@ export default function LandingPage() {
             ))}
           </div>
 
+          {/* Role Showcase Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="group bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-3xl p-8 border border-emerald-200 hover:shadow-2xl hover:shadow-emerald-200/50 transition-all duration-500"
+            >
+              <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-emerald-900 mb-4">🏘️ Citizen Portal</h3>
+              <ul className="space-y-3 text-emerald-700">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-emerald-800">File complaints with photos & videos</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-emerald-800">Track real-time status updates</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-emerald-800">Rate and provide feedback</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-emerald-800">User friendly portal</span>
+                </li>
+              </ul>
+              <div className="mt-6">
+                <Link href="/signup">
+                  <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl group-hover:scale-105 transition-transform">
+                    Join as Citizen
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="group bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 border border-blue-200 hover:shadow-2xl hover:shadow-blue-200/50 transition-all duration-500"
+            >
+              <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-blue-900 mb-4">🤝 Volunteer Portal</h3>
+              <ul className="space-y-3 text-blue-700">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-blue-800">Self-assign complaints from queue</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-blue-800">GPS navigation to issue locations</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-blue-800">Upload resolution evidence</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-blue-800">Track performance metrics</span>
+                </li>
+              </ul>
+              <div className="mt-6">
+                <Link href="/signup">
+                  <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl group-hover:scale-105 transition-transform">
+                    Apply as Volunteer
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="group bg-gradient-to-br from-purple-50 to-pink-100 rounded-3xl p-8 border border-purple-200 hover:shadow-2xl hover:shadow-purple-200/50 transition-all duration-500"
+            >
+              <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-purple-900 mb-4">🛡️ Admin Dashboard</h3>
+              <ul className="space-y-3 text-purple-700">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-purple-800">City-wide complaint management</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-purple-800">Worker assignment & tracking</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-purple-800">Analytics & reporting insights</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-purple-800">System performance monitoring</span>
+                </li>
+              </ul>
+              <div className="mt-6">
+                <Link href="/admin/login">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl group-hover:scale-105 transition-transform">
+                    Admin Access
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+
           {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

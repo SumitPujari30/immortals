@@ -37,7 +37,7 @@ export const complaintsService = {
       docFile?: File
       onProgress?: (progress: number) => void
     }
-  ): Promise<Complaint> {
+  ): Promise<{ success: boolean; complaint?: Complaint; error?: string }> {
     try {
       const { onProgress, imageFile, videoFile, docFile, ...complaintData } = data
       

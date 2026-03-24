@@ -81,6 +81,14 @@ export default function NewComplaintPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
+      
+      // Validate file sizes (10MB limit each)
+      const oversizedFiles = newFiles.filter(file => file.size > 10 * 1024 * 1024)
+      if (oversizedFiles.length > 0) {
+        toast.error(`Files must be under 10MB each. Found: ${oversizedFiles.map(f => f.name).join(', ')}`)
+        return
+      }
+      
       setFiles((prev) => [...prev, ...newFiles])
 
       const newPreviews = newFiles.map((file) => {
@@ -331,6 +339,9 @@ export default function NewComplaintPage() {
                 <div 
                   className="p-8 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/[0.02] text-center hover:bg-primary/[0.04] transition-colors group cursor-pointer relative"
                   onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload files for complaint evidence"
                 >
                   <Input
                     type="file"
@@ -416,6 +427,9 @@ export default function NewComplaintPage() {
                           ? "bg-white text-primary shadow-md translate-y-[-1px]" 
                           : "text-slate-500 hover:text-slate-700"
                       )}
+                      role="radio"
+                      aria-checked={locationMode === 'auto'}
+                      aria-label="Use current GPS location"
                     >
                       <Activity className="w-4 h-4" /> Current GPS
                     </button>
@@ -428,6 +442,9 @@ export default function NewComplaintPage() {
                           ? "bg-white text-primary shadow-md translate-y-[-1px]" 
                           : "text-slate-500 hover:text-slate-700"
                       )}
+                      role="radio"
+                      aria-checked={locationMode === 'manual'}
+                      aria-label="Enter location manually"
                     >
                       <MapPin className="w-4 h-4" /> Manual Entry
                     </button>
@@ -481,10 +498,10 @@ export default function NewComplaintPage() {
 
                   {formData.latitude && formData.longitude && (
                     <div className="w-full h-56 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-xl relative animate-in fade-in zoom-in duration-500">
-                      <img 
-                        src={`https://static-maps.yandex.ru/1.x/?ll=${formData.longitude},${formData.latitude}&size=600,250&z=16&l=map&pt=${formData.longitude},${formData.latitude},pm2rdm`}
-                        alt="Location Preview"
-                        className="w-full h-full object-cover"
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${(parseFloat(formData.longitude) - 0.01).toFixed(4)},${(parseFloat(formData.latitude) - 0.01).toFixed(4)},${(parseFloat(formData.longitude) + 0.01).toFixed(4)},${(parseFloat(formData.latitude) + 0.01).toFixed(4)}&layer=mapnik`}
+                        className="w-full h-full border-0"
+                        title="Location Preview"
                       />
                       <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur px-5 py-3 rounded-2xl text-[10px] font-black text-slate-800 border border-slate-100 shadow-2xl flex items-center justify-between uppercase tracking-widest">
                         <div className="flex items-center gap-3">

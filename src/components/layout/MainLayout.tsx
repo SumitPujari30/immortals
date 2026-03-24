@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { buttonVariants } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   LogOut,
   User,
@@ -126,7 +126,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                     <div className="relative cursor-pointer transition-transform duration-300 hover:scale-110 active:scale-95">
                       <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full blur opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
                       <Avatar variant="pill" size="sm" className="relative border-none shadow-2xl shadow-emerald-900/10 sm:size-4xl">
-                        <AvatarFallback />
+                        <AvatarFallback>
+                          {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                     </div>
                   </DropdownMenuTrigger>
