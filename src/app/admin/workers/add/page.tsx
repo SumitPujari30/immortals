@@ -136,11 +136,12 @@ export default function AddWorkerPage() {
         console.log('Doc uploaded to:', docPhotoUrl)
       }
 
-      console.log('Inserting worker into DB...')
+      console.log('Inserting worker into DB via API...')
 
-      const { data: newWorker, error: workerError } = await supabase
-        .from('workers')
-        .insert({
+      const response = await fetch('/api/workers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           full_name: name,
           age: isNaN(age as number) ? null : age,
           gender,
@@ -149,15 +150,16 @@ export default function AddWorkerPage() {
           area,
           photo_url: photoUrl,
           gov_id_url: docPhotoUrl
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (workerError) {
-        console.error('Database insertion error:', workerError)
-        throw new Error(`Database Error: ${workerError.message}`)
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to register worker')
       }
 
+      const newWorker = result.worker
       console.log('Worker inserted successfully:', newWorker)
       toast.success('Worker added successfully!')
       
@@ -186,37 +188,32 @@ export default function AddWorkerPage() {
   const triggerRoundRobin = async () => {
     try {
       // Get all active workers ordered by assigned_count asc
-      const { data: workers } = await supabase
-        .from('workers')
-        .select('id, assigned_count')
-        .eq('is_active', true)
-        .order('assigned_count', { ascending: true })
-
+      const { workersService, complaintsService } = await import('@/services')
+      const workers = await workersService.list({ isActive: true })
+      
       if (!workers || workers.length === 0) return
+      
+      // Sort workers by assigned_count manually since API might not sort exactly as needed
+      const sortedWorkers = [...workers].sort((a, b) => a.assigned_count - b.assigned_count)
 
       // Get all complaints without a worker
-      const { data: pendingComplaints } = await supabase
-        .from('complaints')
-        .select('id')
-        .is('assigned_worker_id', null)
+      const allComplaints = await complaintsService.listAll({ status: 'pending' })
+      const pendingComplaints = allComplaints.filter(c => !c.assigned_worker_id)
 
       if (!pendingComplaints || pendingComplaints.length === 0) return
 
       // Round Robin Assignment
       for (let i = 0; i < pendingComplaints.length; i++) {
-        const workerIndex = i % workers.length
-        const worker = workers[workerIndex]
+        const workerIndex = i % sortedWorkers.length
+        const worker = sortedWorkers[workerIndex]
         const complaint = pendingComplaints[i]
 
-        await supabase
-          .from('complaints')
-          .update({ assigned_worker_id: worker.id })
-          .eq('id', complaint.id)
-
-        await supabase
-          .from('workers')
-          .update({ assigned_count: worker.assigned_count + 1 })
-          .eq('id', worker.id)
+        await complaintsService.updateStatus(
+          complaint.id, 
+          'in_progress', 
+          null, 
+          worker.id
+        )
       }
     } catch (err) {
       console.error('Round Robin error:', err)

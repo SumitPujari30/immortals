@@ -4,9 +4,13 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { complaintsService } from '@/services'
+import { Complaint } from '@/types'
 import { 
   useAuth, 
   useUserProfile,
+  useRecentComplaints,
   useAllComplaints,
   useProfileList
 } from '@/hooks'
@@ -36,7 +40,8 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Dynamic data for stats
-  const { data: allComplaints } = useAllComplaints({ limit: 500 })
+  const { data: allComplaints } = useAllComplaints()
+  const { data: recentComplaints, isLoading: isRecentLoading } = useRecentComplaints(6)
   const { data: volunteers } = useProfileList({ role: 'volunteer' })
   const { data: citizens } = useProfileList({ role: 'citizen' })
 

@@ -104,10 +104,16 @@ export default function AdminComplaintsPage() {
   const handleUpdateStatus = async (
     id: string,
     status: any,
-    volunteerId?: string
+    volunteerId?: string | null,
+    workerId?: string | null
   ) => {
     try {
-      await updateStatus({ id, status, assignedVolunteerId: volunteerId })
+      await updateStatus({ 
+        id, 
+        status, 
+        assignedVolunteerId: volunteerId,
+        assignedWorkerId: workerId
+      })
       toast.success(`Status updated to ${status.replace('_', ' ')}`)
     } catch (error: any) {
       toast.error(error.message || 'Failed to update status')
@@ -608,6 +614,35 @@ export default function AdminComplaintsPage() {
                         <p className="text-xs text-amber-800/70 font-medium leading-relaxed">
                           This incident has been flagged for environmental impact. Prioritize resolution if the impact score exceeds 10 affected citizens. 
                         </p>
+                      </div>
+
+                      {/* Force Assignment Section */}
+                      <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                        <div className="flex items-center gap-3">
+                          <Users className="w-5 h-5 text-emerald-500" />
+                          <h4 className="text-[10px] font-black uppercase tracking-[.3em] text-slate-400">Force Assignment</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <Select 
+                            value={selectedComplaint.assigned_worker_id || "none"} 
+                            onValueChange={(val) => handleUpdateStatus(selectedComplaint.id, selectedComplaint.status, null, val === "none" ? null : val)}
+                          >
+                            <SelectTrigger className="w-full h-14 rounded-2xl border-2 border-slate-50 bg-slate-50 font-bold text-slate-700">
+                              <SelectValue placeholder="Assign Field Agent" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl shadow-2xl border-slate-200">
+                              <SelectItem value="none" className="font-bold text-slate-400">Unassigned</SelectItem>
+                              {workers?.map(worker => (
+                                <SelectItem key={worker.id} value={worker.id} className="font-bold">
+                                  {worker.full_name} ({worker.assigned_count} Active)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">
+                            {selectedComplaint.assigned_worker_id ? "Worker successfully linked to task" : "Select an agent to begin field operation"}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-4">

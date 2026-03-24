@@ -6,70 +6,36 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { profilesDb, type Profile } from '@/lib/db'
+import { profileService } from '@/services'
+import { UserProfile } from '@/types'
 
 export const profileKeys = {
   all: ['profiles'] as const,
-  byUserId: (userId: string) => [...profileKeys.all, 'user', userId] as const,
-  byId: (id: string) => [...profileKeys.all, 'id', id] as const,
-  list: (filters?: Record<string, unknown>) =>
-    [...profileKeys.all, 'list', filters] as const,
+  lists: () => [...profileKeys.all, 'list'] as const,
+  details: () => [...profileKeys.all, 'detail'] as const,
+  detail: (userId: string) => [...profileKeys.details(), userId] as const,
 }
 
-export function useUserProfile(userId: string | undefined) {
+export function useUserProfile(userId?: string) {
   return useQuery({
-    queryKey: profileKeys.byUserId(userId || ''),
-    queryFn: () => {
-      if (!userId) return null
-      return profilesDb.getByUserId(userId)
-    },
+    queryKey: profileKeys.detail(userId || ''),
+    queryFn: () => (userId ? profileService.get(userId) : null),
     enabled: !!userId,
   })
 }
 
-export function useProfileById(id: string | undefined) {
+export function useProfileById(id: string) {
   return useQuery({
-    queryKey: profileKeys.byId(id || ''),
-    queryFn: () => {
-      if (!id) return null
-      return profilesDb.getById(id)
-    },
+    queryKey: [...profileKeys.all, id],
+    queryFn: () => profileService.getById(id),
     enabled: !!id,
   })
 }
 
-export function useProfileList(options?: {
-  limit?: number
-  offset?: number
-  city?: string
-  role?: string
-}) {
+export function useProfileList(options?: { city?: string; role?: string }) {
   return useQuery({
-    queryKey: profileKeys.list(options),
-    queryFn: () => profilesDb.list(options),
-  })
-}
-
-export function useCreateProfile() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: {
-      user_id: string
-      full_name: string
-      phone?: string
-      address?: string
-      city?: string
-      pincode?: string
-      role?: 'citizen' | 'volunteer' | 'admin'
-      gov_id_type?: string
-      gov_id_url?: string
-    }) => profilesDb.create(data),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({
-        queryKey: profileKeys.byUserId(result.user_id),
-      })
-    },
+    queryKey: [...profileKeys.lists(), options],
+    queryFn: () => profileService.list(options),
   })
 }
 
@@ -77,29 +43,11 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string
-      data: Partial<{
-        full_name: string
-        phone: string
-        address: string
-        city: string
-        pincode: string
-        role: 'citizen' | 'volunteer' | 'admin'
-        gov_id_type: string
-        gov_id_url: string
-        is_on_duty: boolean
-      }>
-    }) => profilesDb.update(id, data),
-    onSuccess: (result) => {
+    mutationFn: ({ id, data }: { id: string; data: Partial<UserProfile> }) =>
+      profileService.update(id, data),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: profileKeys.byUserId(result.user_id),
-      })
-      queryClient.invalidateQueries({
-        queryKey: profileKeys.byId(result.id),
+        queryKey: profileKeys.all,
       })
     },
   })
@@ -109,16 +57,14 @@ export function useGetOrCreateProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
-      userId,
-      fullName,
-    }: {
-      userId: string
-      fullName: string
-    }) => profilesDb.getOrCreate(userId, fullName),
-    onSuccess: (result) => {
+    mutationFn: async ({ userId, fullName }: { userId: string; fullName: string }) => {
+      const existing = await profileService.get(userId)
+      if (existing) return existing
+      return profileService.create({ user_id: userId, full_name: fullName })
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: profileKeys.byUserId(result.user_id),
+        queryKey: profileKeys.all,
       })
     },
   })

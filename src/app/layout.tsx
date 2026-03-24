@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Providers } from '@/components/providers'
-import { MainLayout } from '@/components/MainLayout'
+import { Providers } from '@/components/shared/providers'
+import { MainLayout } from '@/components/layout/MainLayout'
 import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {

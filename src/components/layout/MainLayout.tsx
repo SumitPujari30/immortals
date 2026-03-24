@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth, useUserProfile } from '@/hooks'
-import Chatbot from '@/components/Chatbot'
+import Chatbot from '@/components/features/Chatbot'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

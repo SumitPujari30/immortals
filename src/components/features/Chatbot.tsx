@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { useAuth, useUserProfile, useUserComplaints, useRecentComplaints } from '@/hooks'
+import { useAuth } from '@/hooks/useAuth'
+import { useUserProfile } from '@/hooks/useProfile'
+import { useUserComplaints, useRecentComplaints } from '@/hooks/useComplaints'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -247,7 +249,7 @@ export default function Chatbot() {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
@@ -442,7 +444,7 @@ export default function Chatbot() {
               <Input
                 ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
                   cooldown

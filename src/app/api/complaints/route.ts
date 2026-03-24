@@ -74,6 +74,29 @@ export async function PATCH(req: NextRequest) {
       }, { status: 500 })
     }
 
+    // If a worker was newly assigned, increment their count
+    if (data.assigned_worker_id) {
+      const { error: workerError } = await supabaseAdmin.rpc('increment_worker_assigned_count', { 
+        worker_id: data.assigned_worker_id 
+      })
+      if (workerError) {
+        console.error('Failed to increment worker count via RPC:', workerError)
+        // Fallback: direct update if RPC fails
+        const { data: worker } = await supabaseAdmin
+          .from('workers')
+          .select('assigned_count')
+          .eq('id', data.assigned_worker_id)
+          .single()
+        
+        if (worker) {
+          await supabaseAdmin
+            .from('workers')
+            .update({ assigned_count: (worker.assigned_count || 0) + 1 })
+            .eq('id', data.assigned_worker_id)
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, complaint: updated })
   } catch (error: any) {
     console.error('Complaint Update API error:', error)

@@ -1,19 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase-client-singleton'
+import { workersService } from '@/services'
 
-export function useWorkerList() {
+export function useWorkerList(options?: { area?: string; isActive?: boolean }) {
   return useQuery({
-    queryKey: ['workers'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('workers')
-        .select('*')
-        .eq('is_active', true)
-        .order('full_name')
-
-      if (error) throw error
-      return data
-    }
+    queryKey: ['workers', options],
+    queryFn: () => workersService.list(options)
   })
 }
 
@@ -21,15 +12,7 @@ export function useDeleteWorker() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('workers')
-        .update({ is_active: false }) // Soft delete
-        .eq('id', id)
-
-      if (error) throw error
-      return { id }
-    },
+    mutationFn: (id: string) => workersService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workers'] })
     }

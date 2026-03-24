@@ -120,12 +120,8 @@ export default function AllWorkersPage() {
       await updateComplaint({
         id: complaintId,
         status: 'in_progress',
-        // @ts-ignore - assigned_worker_id is supported but may not be in the hook type yet
-        assigned_worker_id: workerForAssign.id
+        assignedWorkerId: workerForAssign.id
       })
-      
-      // Update the worker's assigned count manually for immediate UI feedback
-      await supabase.rpc('increment_worker_assigned_count', { worker_id: workerForAssign.id })
       
       toast.success(`Task assigned to ${workerForAssign.full_name}`)
       setIsAssignDialogOpen(false)
