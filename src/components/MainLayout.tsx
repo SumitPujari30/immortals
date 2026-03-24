@@ -159,7 +159,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenu>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Link
                   href="/login"
                   className="bg-brand-orange hover:bg-orange-600 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm shadow-lg shadow-brand-orange/20 transition-all whitespace-nowrap"
@@ -188,7 +188,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Nav */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t bg-background p-4 sm:p-6 animate-in">
+          <div className="lg:hidden border-t bg-background p-4 sm:p-6 animate-slide-in">
             <nav className="flex flex-col gap-4">
               {[...navLinks, ...authLinks].map((link) => {
                 const hasIcon = 'icon' in link

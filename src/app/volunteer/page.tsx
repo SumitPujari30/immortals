@@ -325,106 +325,154 @@ export default function VolunteerDashboard() {
                           </div>
                         </div>
 
-                        <div className="mt-8 pt-8 border-t flex flex-col lg:flex-row gap-8 items-start justify-between">
-                          <div className="flex-1 w-full space-y-4">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[.25em] mb-4">Field Agent Task Progress</p>
+                        <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t flex flex-col lg:flex-row gap-6 sm:gap-8 items-start justify-between">
+                          <div className="flex-1 w-full space-y-3 sm:space-y-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[.25em] mb-3 sm:mb-4">Field Agent Task Progress</p>
                             
-                            <div className="space-y-4">
-                              {/* View Only Option 1: Start Review */}
-                              <div className={cn(
-                                "w-full h-14 rounded-2xl flex items-center justify-start px-6 gap-5 border transition-all duration-500",
-                                (complaint.status === 'under_review' || complaint.status === 'in_progress' || complaint.status === 'resolved')
-                                  ? "bg-emerald-50/30 border-emerald-100/50" 
-                                  : "bg-purple-50/50 border-purple-100/50 ring-2 ring-purple-600/10"
-                              )}>
+                            <div className="space-y-3 sm:space-y-4">
+                              {/* Step 1: Start Review — clickable when pending */}
+                              <button
+                                type="button"
+                                disabled={complaint.status !== 'pending' || statusUpdating}
+                                onClick={async () => {
+                                  try {
+                                    await updateStatus({ id: complaint.id, status: 'under_review' })
+                                    toast.success('Review started!')
+                                  } catch (e: any) { toast.error(e.message || 'Failed') }
+                                }}
+                                className={cn(
+                                  "w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-start px-4 sm:px-6 gap-3 sm:gap-5 border transition-all duration-500",
+                                  (complaint.status === 'under_review' || complaint.status === 'in_progress' || complaint.status === 'resolved')
+                                    ? "bg-emerald-50/30 border-emerald-100/50 cursor-default" 
+                                    : "bg-purple-50/50 border-purple-100/50 ring-2 ring-purple-600/10 hover:bg-purple-100/50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer",
+                                  (complaint.status !== 'pending') && "cursor-default"
+                                )}>
                                 <div className={cn(
-                                  "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm",
+                                  "w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm shrink-0",
                                   (complaint.status === 'under_review' || complaint.status === 'in_progress' || complaint.status === 'resolved')
                                     ? "bg-emerald-500 text-white" 
                                     : "bg-purple-600 text-white"
                                 )}>01</div>
-                                <div className="flex-1">
+                                <div className="flex-1 text-left">
                                   <p className={cn(
-                                    "font-black uppercase tracking-[.15em] text-[11px]",
+                                    "font-black uppercase tracking-[.15em] text-[10px] sm:text-[11px]",
                                     (complaint.status === 'under_review' || complaint.status === 'in_progress' || complaint.status === 'resolved')
                                       ? "text-emerald-700" 
                                       : "text-purple-700"
                                   )}>Start Initial Review</p>
-                                  <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Physical Verification Stage</p>
+                                  <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5 hidden sm:block">Physical Verification Stage</p>
                                 </div>
                                 {(complaint.status === 'under_review' || complaint.status === 'in_progress' || complaint.status === 'resolved') && (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-in zoom-in duration-500" />
+                                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
                                 )}
-                              </div>
+                                {complaint.status === 'pending' && (
+                                  <ArrowRight className="w-4 h-4 text-purple-500 shrink-0 animate-pulse" />
+                                )}
+                              </button>
 
-                              {/* View Only Option 2: Mark In Progress */}
-                              <div className={cn(
-                                "w-full h-14 rounded-2xl flex items-center justify-start px-6 gap-5 border transition-all duration-500",
-                                (complaint.status === 'in_progress' || complaint.status === 'resolved')
-                                  ? "bg-emerald-50/30 border-emerald-100/50" 
-                                  : complaint.status === 'under_review'
-                                    ? "bg-blue-50/50 border-blue-100/50 ring-2 ring-blue-600/10"
-                                    : "bg-slate-50 border-slate-100 grayscale opacity-40"
-                              )}>
+                              {/* Step 2: Mark In Progress — clickable when under_review */}
+                              <button
+                                type="button"
+                                disabled={complaint.status !== 'under_review' || statusUpdating}
+                                onClick={async () => {
+                                  try {
+                                    await updateStatus({ id: complaint.id, status: 'in_progress' })
+                                    toast.success('Marked as In Progress!')
+                                  } catch (e: any) { toast.error(e.message || 'Failed') }
+                                }}
+                                className={cn(
+                                  "w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-start px-4 sm:px-6 gap-3 sm:gap-5 border transition-all duration-500",
+                                  (complaint.status === 'in_progress' || complaint.status === 'resolved')
+                                    ? "bg-emerald-50/30 border-emerald-100/50 cursor-default" 
+                                    : complaint.status === 'under_review'
+                                      ? "bg-blue-50/50 border-blue-100/50 ring-2 ring-blue-600/10 hover:bg-blue-100/50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                                      : "bg-slate-50 border-slate-100 grayscale opacity-40 cursor-default"
+                                )}>
                                 <div className={cn(
-                                  "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm",
+                                  "w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm shrink-0",
                                   (complaint.status === 'in_progress' || complaint.status === 'resolved')
                                     ? "bg-emerald-500 text-white" 
                                     : complaint.status === 'under_review'
                                       ? "bg-blue-600 text-white"
                                       : "bg-slate-300 text-white"
                                 )}>02</div>
-                                <div className="flex-1">
+                                <div className="flex-1 text-left">
                                   <p className={cn(
-                                    "font-black uppercase tracking-[.15em] text-[11px]",
+                                    "font-black uppercase tracking-[.15em] text-[10px] sm:text-[11px]",
                                     (complaint.status === 'in_progress' || complaint.status === 'resolved')
                                       ? "text-emerald-700" 
                                       : complaint.status === 'under_review'
                                         ? "text-blue-700"
                                         : "text-slate-500"
                                   )}>Mark In Progress</p>
-                                  <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Active Resolution Phase</p>
+                                  <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5 hidden sm:block">Active Resolution Phase</p>
                                 </div>
                                 {(complaint.status === 'in_progress' || complaint.status === 'resolved') && (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-500 animate-in zoom-in duration-500" />
+                                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
                                 )}
-                              </div>
+                                {complaint.status === 'under_review' && (
+                                  <ArrowRight className="w-4 h-4 text-blue-500 shrink-0 animate-pulse" />
+                                )}
+                              </button>
 
-                              {/* View Only Option 3: Resolve Issue */}
-                              <div className={cn(
-                                "w-full h-14 rounded-2xl flex items-center justify-start px-6 gap-5 border transition-all duration-500",
-                                complaint.status === 'resolved'
-                                  ? "bg-emerald-600 border-emerald-600 shadow-xl shadow-emerald-100 scale-[1.02]" 
-                                  : complaint.status === 'in_progress'
-                                    ? "bg-emerald-50/50 border-emerald-100/50 ring-2 ring-emerald-600/10"
-                                    : "bg-slate-50 border-slate-100 grayscale opacity-40"
-                              )}>
+                              {/* Step 3: Resolve — clickable when in_progress */}
+                              <button
+                                type="button"
+                                disabled={complaint.status !== 'in_progress' || statusUpdating}
+                                onClick={() => handleResolve(complaint.id)}
+                                className={cn(
+                                  "w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-start px-4 sm:px-6 gap-3 sm:gap-5 border transition-all duration-500",
+                                  complaint.status === 'resolved'
+                                    ? "bg-emerald-600 border-emerald-600 shadow-xl shadow-emerald-100 scale-[1.02] cursor-default" 
+                                    : complaint.status === 'in_progress'
+                                      ? "bg-emerald-50/50 border-emerald-100/50 ring-2 ring-emerald-600/10 hover:bg-emerald-100/50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                                      : "bg-slate-50 border-slate-100 grayscale opacity-40 cursor-default"
+                                )}>
                                 <div className={cn(
-                                  "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm",
+                                  "w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm shrink-0",
                                   complaint.status === 'resolved'
                                     ? "bg-white text-emerald-600" 
-                                    : "bg-slate-300 text-white"
+                                    : complaint.status === 'in_progress'
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-slate-300 text-white"
                                 )}>03</div>
-                                <div className="flex-1">
+                                <div className="flex-1 text-left">
                                   <p className={cn(
-                                    "font-black uppercase tracking-[.15em] text-[11px]",
+                                    "font-black uppercase tracking-[.15em] text-[10px] sm:text-[11px]",
                                     complaint.status === 'resolved'
                                       ? "text-white" 
-                                      : "text-slate-500"
+                                      : complaint.status === 'in_progress'
+                                        ? "text-emerald-700"
+                                        : "text-slate-500"
                                   )}>Final Resolution</p>
                                   <p className={cn(
-                                    "text-[9px] font-medium uppercase tracking-widest mt-0.5",
+                                    "text-[9px] font-medium uppercase tracking-widest mt-0.5 hidden sm:block",
                                     complaint.status === 'resolved' ? "text-emerald-100" : "text-slate-400"
                                   )}>Official Task Closure</p>
                                 </div>
                                 {complaint.status === 'resolved' && (
-                                  <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full border border-white/20">
-                                    <span className="text-[8px] font-black text-white uppercase tracking-tighter">Completed</span>
-                                    <CheckCircle2 className="w-4 h-4 text-white" />
+                                  <div className="flex items-center gap-1.5 bg-white/20 px-2 sm:px-3 py-1 rounded-full border border-white/20">
+                                    <span className="text-[8px] font-black text-white uppercase tracking-tighter">Done</span>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                                   </div>
                                 )}
-                              </div>
+                                {complaint.status === 'in_progress' && (
+                                  <ArrowRight className="w-4 h-4 text-emerald-500 shrink-0 animate-pulse" />
+                                )}
+                              </button>
                             </div>
+
+                            {/* Cancel Slot button */}
+                            {complaint.status !== 'resolved' && (
+                              <button
+                                type="button"
+                                onClick={() => handleCancelSlot(complaint.id)}
+                                className="mt-2 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1.5 px-1"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                Release this assignment
+                              </button>
+                            )}
                           </div>
 
                           {/* Location & Navigation */}

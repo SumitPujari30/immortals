@@ -24,8 +24,8 @@ export const complaintKeys = {
   details: () => [...complaintKeys.all, 'detail'] as const,
   detail: (id: string) => [...complaintKeys.details(), id] as const,
   recent: () => [...complaintKeys.all, 'recent'] as const,
-  counts: (userId: string) =>
-    [...complaintKeys.all, 'count', userId] as const,
+  counts: (userId: string, status?: string) =>
+    [...complaintKeys.all, 'count', userId, status] as const,
 }
 
 export function useUserComplaints(
@@ -44,6 +44,8 @@ export function useUserComplaints(
       return getUserComplaints(userId, options)
     },
     enabled: !!userId,
+    refetchInterval: 30000,
+    staleTime: 10000,
   })
 }
 
@@ -56,6 +58,8 @@ export function useAllComplaints(options?: {
   return useQuery({
     queryKey: [...complaintKeys.all, 'all', options],
     queryFn: () => complaintsDb.listAll(options),
+    refetchInterval: 30000,
+    staleTime: 10000,
   })
 }
 
@@ -74,6 +78,8 @@ export function useRecentComplaints(limit: number = 10) {
   return useQuery({
     queryKey: complaintKeys.recent(),
     queryFn: () => complaintsDb.getRecent(limit),
+    refetchInterval: 30000,
+    staleTime: 10000,
   })
 }
 
@@ -82,12 +88,14 @@ export function useComplaintCount(
   status?: string
 ) {
   return useQuery({
-    queryKey: complaintKeys.counts(userId || ''),
+    queryKey: complaintKeys.counts(userId || '', status),
     queryFn: () => {
       if (!userId) return 0
       return complaintsDb.countByUser(userId, status)
     },
     enabled: !!userId,
+    refetchInterval: 30000,
+    staleTime: 10000,
   })
 }
 
@@ -104,14 +112,10 @@ export function useRegisterComplaint() {
       return registerComplaint(complaintData, onProgress)
     },
     onSuccess: (result, variables) => {
-      if (result.success && variables.userId) {
-        queryClient.invalidateQueries({
-          queryKey: complaintKeys.list(variables.userId),
-        })
-        queryClient.invalidateQueries({
-          queryKey: complaintKeys.counts(variables.userId),
-        })
-      }
+      // Invalidate everything so all dashboards refresh
+      queryClient.invalidateQueries({
+        queryKey: complaintKeys.all,
+      })
     },
   })
 }
@@ -129,12 +133,10 @@ export function useUpdateComplaintStatus() {
       status: 'pending' | 'under_review' | 'in_progress' | 'resolved' | 'rejected'
       assignedVolunteerId?: string | null
     }) => updateComplaintStatus(id, status, assignedVolunteerId),
-    onSuccess: (result) => {
+    onSuccess: () => {
+      // Invalidate all complaint queries so every dashboard refreshes
       queryClient.invalidateQueries({
-        queryKey: complaintKeys.detail(result.id),
-      })
-      queryClient.invalidateQueries({
-        queryKey: complaintKeys.recent(),
+        queryKey: complaintKeys.all,
       })
     },
   })

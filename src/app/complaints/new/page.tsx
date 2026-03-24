@@ -254,7 +254,7 @@ export default function NewComplaintPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="px-10 pb-12">
+          <CardContent className="px-4 sm:px-6 lg:px-10 pb-8 sm:pb-12">
             <form onSubmit={handleSubmit} className="space-y-10">
               {/* Category & Description */}
               <div className="space-y-6">
@@ -300,7 +300,8 @@ export default function NewComplaintPage() {
                   <Textarea
                     id="description"
                     placeholder="Describe the issue in detail. Include landmarks or specific observations."
-                    className="min-h-[150px] border-2 focus:ring-primary resize-none p-4"
+                    className="min-h-[120px] sm:min-h-[150px] border-2 focus:ring-primary resize-none p-3 sm:p-4 text-sm sm:text-base"
+                    maxLength={1000}
                     value={formData.description}
                     onChange={(e) =>
                       setFormData((p) => ({
@@ -310,6 +311,15 @@ export default function NewComplaintPage() {
                     }
                     required
                   />
+                  <div className="flex justify-end">
+                    <span className={cn(
+                      "text-xs font-medium",
+                      formData.description.length > 900 ? "text-red-500" : 
+                      formData.description.length > 700 ? "text-amber-500" : "text-muted-foreground"
+                    )}>
+                      {formData.description.length}/1000
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -396,7 +406,7 @@ export default function NewComplaintPage() {
                   3. Location Information
                 </h3>
                 <div className="space-y-6">
-                  <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner mb-6">
+                  <div className="flex bg-slate-100 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-inner mb-4 sm:mb-6">
                     <button
                       type="button"
                       onClick={() => setLocationMode('auto')}
@@ -527,7 +537,7 @@ export default function NewComplaintPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                   <Button
                     type="submit"
                     className="flex-1 h-14 btn-primary-civic text-xl shadow-xl"

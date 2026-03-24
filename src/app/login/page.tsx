@@ -23,6 +23,8 @@ import {
   Mail,
   Lock,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -30,6 +32,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -58,7 +61,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-8 sm:py-12 px-4 bg-background">
-      <div className="w-full max-w-md animate-in">
+      <div className="w-full max-w-md animate-page-enter">
         <div className="text-center mb-6 sm:mb-8 flex flex-col items-center">
           <Link
             href="/"
@@ -130,15 +133,24 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
-                    className="pl-10 sm:pl-11 h-11 sm:h-12 border-2 focus:ring-primary text-sm sm:text-base"
+                    className="pl-10 sm:pl-11 pr-11 h-11 sm:h-12 border-2 focus:ring-primary text-sm sm:text-base"
                     value={formData.password}
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, password: e.target.value }))
                     }
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  </button>
                 </div>
               </div>
               <Button

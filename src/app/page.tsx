@@ -1,12 +1,14 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   useAuth, 
-  useUserProfile 
+  useUserProfile,
+  useAllComplaints,
+  useProfileList
 } from '@/hooks'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -20,12 +22,28 @@ import {
   Navigation,
   Globe,
   Smartphone,
-  Zap
+  Zap,
+  Menu,
+  X,
+  FileText,
+  HeartHandshake,
+  TrendingUp
 } from 'lucide-react'
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth()
   const { data: profile } = useUserProfile(user?.id)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Dynamic data for stats
+  const { data: allComplaints } = useAllComplaints({ limit: 500 })
+  const { data: volunteers } = useProfileList({ role: 'volunteer' })
+  const { data: citizens } = useProfileList({ role: 'citizen' })
+
+  const totalComplaints = allComplaints?.length || 0
+  const resolvedComplaints = allComplaints?.filter((c: any) => c.status === 'resolved').length || 0
+  const activeVolunteers = volunteers?.filter((v: any) => v.is_on_duty).length || volunteers?.length || 0
+  const totalCitizens = citizens?.length || 0
 
   const getDashboardLink = () => {
     if (!profile) return '/dashboard'
@@ -95,7 +113,7 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Right Side — Live badge + CTA */}
+            {/* Right Side — Live badge + CTA + Hamburger */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="hidden sm:flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-2 sm:px-3 py-1.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -105,22 +123,76 @@ export default function LandingPage() {
               {!isAuthenticated ? (
                 <Link
                   href="/login"
-                  className="bg-brand-orange hover:bg-orange-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-brand-orange/30 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap"
+                  className="hidden sm:inline-flex bg-brand-orange hover:bg-orange-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-brand-orange/30 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap"
                 >
-                  <span className="hidden sm:inline">Login / Register</span>
-                  <span className="sm:hidden">Login</span>
+                  Login / Register
                 </Link>
               ) : (
                 <Link
                   href={getDashboardLink()}
-                  className="bg-brand-orange hover:bg-orange-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-brand-orange/30 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap"
+                  className="hidden sm:inline-flex bg-brand-orange hover:bg-orange-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-brand-orange/30 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap"
                 >
-                  <span className="hidden sm:inline">Dashboard →</span>
-                  <span className="sm:hidden">Dash →</span>
+                  Dashboard →
                 </Link>
               )}
+
+              {/* Mobile Hamburger */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="mt-2 bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl md:hidden"
+            >
+              <div className="flex flex-col gap-1">
+                {[
+                  { label: 'Features', href: '#features' },
+                  { label: 'How it Works', href: '#how-it-works' },
+                  { label: 'Community', href: '#community' },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="px-4 py-3 text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="border-t border-white/10 mt-2 pt-3">
+                  {!isAuthenticated ? (
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center bg-brand-orange hover:bg-orange-500 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-lg shadow-brand-orange/30 transition-all"
+                    >
+                      Login / Register
+                    </Link>
+                  ) : (
+                    <Link
+                      href={getDashboardLink()}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center bg-brand-orange hover:bg-orange-500 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-lg shadow-brand-orange/30 transition-all"
+                    >
+                      Dashboard →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </nav>
 
@@ -167,6 +239,10 @@ export default function LandingPage() {
                 Empowering <span className="text-brand-orange">Communities.</span><br />
                 Building <span className="text-brand-green">Futures.</span>
               </h1>
+
+              <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-400 font-medium leading-relaxed px-6">
+                Report civic issues, track resolutions in real-time, and collaborate with volunteers to build a smarter, more responsive community.
+              </p>
               
               <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 sm:gap-6 px-4">
                 <Link href="/complaints/new">
@@ -179,6 +255,17 @@ export default function LandingPage() {
                   </Button>
                 </Link>
 
+                {!isAuthenticated && (
+                  <Link href="/signup">
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="rounded-full border-2 border-white/20 text-white hover:bg-white/10 font-bold px-8 sm:px-10 h-12 sm:h-16 text-base sm:text-lg tracking-tight w-full sm:w-auto transition-all hover:scale-105 active:scale-95"
+                    >
+                      Join as Citizen
+                    </Button>
+                  </Link>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -287,12 +374,12 @@ export default function LandingPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <p className="text-xl sm:text-2xl font-black text-white mb-1">100%</p>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Multimedia-backed Evidence</p>
+                  <p className="text-xl sm:text-2xl font-black text-white mb-1">{totalComplaints}+</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Reports Filed</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <p className="text-xl sm:text-2xl font-black text-white mb-1">&lt;5m</p>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">GPS Accuracy Threshold</p>
+                  <p className="text-xl sm:text-2xl font-black text-white mb-1">{resolvedComplaints}</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Issues Resolved</p>
                 </div>
               </div>
             </div>
@@ -359,6 +446,83 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Community CTA Section */}
+      <section id="community" className="py-16 sm:py-20 lg:py-32 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-orange/[0.03] via-transparent to-brand-green/[0.03]" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12 sm:mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-green/5 text-brand-green text-[10px] font-black uppercase tracking-[.25em] mb-4 sm:mb-6 border border-brand-green/10">
+              <HeartHandshake className="w-3 h-3" />
+              Stronger Together
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight mb-6 sm:mb-8 px-4 text-slate-900">
+              Join the <span className="text-brand-green">Movement.</span>
+            </h2>
+            <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-500 font-medium leading-relaxed px-4">
+              Be part of a growing community of active citizens and volunteers transforming how civic issues are reported and resolved across India.
+            </p>
+          </motion.div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16">
+            {[
+              { value: `${totalComplaints}`, label: 'Total Reports Filed', icon: Activity },
+              { value: `${activeVolunteers}`, label: 'Active Volunteers', icon: MapPin },
+              { value: `${resolvedComplaints}`, label: 'Issues Resolved', icon: TrendingUp },
+              { value: `${totalCitizens}`, label: 'Registered Citizens', icon: Users },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group bg-slate-50 hover:bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-transparent hover:border-slate-100 hover:shadow-xl transition-all duration-500 text-center"
+              >
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 mb-1">{stat.value}</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6"
+          >
+            <Link href="/complaints/new">
+              <Button 
+                size="lg" 
+                className="rounded-full bg-brand-orange hover:bg-orange-600 text-white font-black px-8 sm:px-12 h-12 sm:h-16 text-base sm:text-lg group shadow-2xl shadow-brand-orange/30 transition-all hover:scale-105 active:scale-95 w-full sm:w-auto"
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                Report an Issue
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-2 transition-transform" />
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="rounded-full border-2 border-brand-green/30 text-brand-green hover:bg-brand-green/5 font-bold px-8 sm:px-10 h-12 sm:h-16 text-base sm:text-lg w-full sm:w-auto transition-all hover:scale-105 active:scale-95"
+              >
+                <Users className="w-5 h-5 mr-2" />
+                Become a Volunteer
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
 
     </div>
   )
